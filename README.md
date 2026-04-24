@@ -24,12 +24,12 @@ A Spring Boot backend simulating a social media ecosystem where human users and 
 
 ### Run Locally
 
-**1. Start infrastructure services**
+1. Start infrastructure services
 ```bash
 docker-compose up -d
 ```
 
-**2. Run the application**
+2. Run the application
 ```bash
 mvn spring-boot:run
 ```
@@ -41,9 +41,7 @@ mvn spring-boot:run
 ### Users
 
 #### Add a Human User
-```
 POST /api/addUser
-```
 ```json
 {
   "creater": {
@@ -55,9 +53,7 @@ POST /api/addUser
 ```
 
 #### Add a Bot User
-```
 POST /api/addUser
-```
 ```json
 {
   "botUser": {
@@ -73,13 +69,32 @@ POST /api/addUser
 ### Posts
 
 #### Create a Post
-```
 POST /api/posts
-```
 ```json
 {
   "author": { "id": 1 },
   "content": "Hello world"
+}
+```
+
+#### Like Post
+POST /api/posts/{postId}/like
+
+Bot example:
+```json
+{
+  "botUser": {
+    "id": 1
+  }
+}
+```
+
+User example:
+```json
+{
+  "user": {
+    "id": 1
+  }
 }
 ```
 
@@ -88,9 +103,7 @@ POST /api/posts
 ### Comments
 
 #### Add a Comment (Human)
-```
 POST /api/posts/{postId}/comments
-```
 ```json
 {
   "author": { "id": 1 },
@@ -99,9 +112,7 @@ POST /api/posts/{postId}/comments
 ```
 
 #### Add a Comment (Bot)
-```
 POST /api/posts/{postId}/comments
-```
 ```json
 {
   "botUser": { "id": 2 },
@@ -114,73 +125,72 @@ POST /api/posts/{postId}/comments
 ## Core Features
 
 ### 1. Bot Reply Limiting
-Caps the number of bot replies per post at **100** to prevent spam and runaway bot activity.
+Caps the number of bot replies per post at 100 to prevent spam.
 
-**Redis key:**
+Redis key:
 ```
-postId:{postId}:Bot_count
+postId:{postId}:bot_count
 ```
 
 ---
 
 ### 2. Cooldown System
-Prevents repeated bot–user interactions within a short window, ensuring conversations feel natural and non-spammy.
+Prevents repeated bot–user interactions within a short window.
 
-**Redis key:**
+Redis key:
 ```
 cooldown:{minId}:{maxId}
 ```
-Where `minId` and `maxId` are the lower and higher of the two participant IDs, making the key order-independent.
+
+(minId = smaller ID, maxId = larger ID to keep key consistent)
 
 ---
 
 ### 3. Comment Depth Limit
-Threaded replies are capped at a **maximum depth of 20** to prevent infinitely nested comment chains.
+Threaded replies are capped at a maximum depth of 20.
 
 ---
 
 ### 4. Notification Engine (Smart Batching)
 
-Notifications are intelligently throttled to avoid overwhelming users with per-interaction pings.
+Immediate Notification (no cooldown):
+- Send notification instantly
+- Set a 15-minute cooldown
 
-#### Immediate Notification (No Active Cooldown)
-1. Send notification to user right away
-2. Set a **15-minute cooldown** for that user
+Batched Notification (cooldown active):
+- Store in Redis:
+```
+user:{id}:pending_notifs
+```
+- Cron job runs every 5 minutes
+- Sends summary:
+"Bot X and 4 others interacted with your post"
 
-#### Batched Notification (Cooldown Active)
-1. Queue the notification in Redis:
-   ```
-   user:{id}:pending_notifs
-   ```
-2. A **cron job runs every 5 minutes** and dispatches a summarized digest:
-   > *"Bot X and 4 others interacted with your post"*
-
-#### Flow Diagram
+Flow:
 ```
 New interaction
-      │
-      ▼
+      |
+      v
 User in cooldown?
-   │         │
+   |         |
   YES        NO
-   │         │
-   ▼         ▼
-Queue to   Send immediately
-pending  + Set 15-min cooldown
-notifs
-   │
-   ▼
+   |         |
+   v         v
+Queue      Send immediately
+to Redis   + set 15-min cooldown
+   |
+   v
 Cron (every 5 min)
-→ Flush & send digest
+-> Flush & send digest
 ```
 
 ---
 
 ## Design Principles
 
-- **Stateless backend** — no session state stored in the application layer
-- **Redis as gatekeeper** — all rate limiting, cooldowns, and notification queues live in Redis for fast, atomic operations
-- **PostgreSQL as source of truth** — all persistent data (users, posts, comments) is durably stored in Postgres
+- Stateless backend (no session stored in app)
+- Redis handles rate limiting, cooldowns, queues
+- PostgreSQL stores all persistent data
 
 ---
 
@@ -190,11 +200,11 @@ Cron (every 5 min)
 Comments_backend/UserBot/
 ├── src/
 │   └── main/
-│       ├── java/com/echofeed/
-│       │   ├── controller/       # REST endpoints
-│       │   ├── creater/          # Entity classes
-│       │   ├── repository/       # JPA repositories
-│       │   ├── services/         # service classes
+│       ├── java/EchoFeed/UserBot/
+│       │   ├── controller/
+│       │   ├── creater/
+│       │   ├── repository/
+│       │   ├── services/
 │       └── resources/
 │           └── application.yml
 ├── docker-compose.yml
