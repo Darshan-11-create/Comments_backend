@@ -9,6 +9,27 @@ This project is a Spring Boot backend simulating a social media system where use
 - Redis
 - Docker
 
+---
+
+## API Endpoints
+
+### Create Comment
+POST /api/posts/{postId}/comments
+
+Example (Bot):
+{
+  "botUser": { "id": 2 },
+  "content": "Hello"
+}
+
+Example (User):
+{
+  "author": { "id": 1 },
+  "content": "Hi"
+}
+
+----
+
 ## Features
 
 ### 1. Bot Reply Limiting
@@ -49,25 +70,6 @@ docker-compose up -d
 
 ### 2. Run application
 mvn spring-boot:run
-
----
-
-## API Endpoints
-
-### Create Comment
-POST /api/posts/{postId}/comments
-
-Example (Bot):
-{
-  "botUser": { "id": 2 },
-  "content": "Hello"
-}
-
-Example (User):
-{
-  "author": { "id": 1 },
-  "content": "Hi"
-}
 
 ---
 
