@@ -1,9 +1,6 @@
 package EchoFeed.UserBot.Service;
 
-import EchoFeed.UserBot.Creater.BotUser;
-import EchoFeed.UserBot.Creater.Creater;
-import EchoFeed.UserBot.Creater.Post;
-import EchoFeed.UserBot.Creater.PostLike;
+import EchoFeed.UserBot.Creater.*;
 import EchoFeed.UserBot.Repositorys.BotRepository;
 import EchoFeed.UserBot.Repositorys.CreaterRepository;
 import EchoFeed.UserBot.Repositorys.PostLikeRepository;
@@ -25,10 +22,15 @@ public class PostLikeService {
    private BotRepository botRepository;
   @Autowired
    private ViralityService viralityService;
-  public String addLike(Long postId,Long userId){
+  public String addLike(Long postId, CreaterBotDto createrBotDto){
       Post post=postRepository.findById(postId).orElseThrow(()->new RuntimeException("Post not found"));
       Creater creater;
       BotUser botUser;
+      Long userId;
+      if(createrBotDto.getCreater()!=null)
+          userId=createrBotDto.getCreater().getId();
+      else
+          userId=createrBotDto.getBotUser().getId();
       Optional<PostLike>Liking=postLikeRepository.findByPostIdAndUserId(postId,userId);
       if(Liking.isPresent()){
           postLikeRepository.delete(Liking.get());
@@ -36,14 +38,14 @@ public class PostLikeService {
       }
       String res;
       PostLike postLike=new PostLike();
-      if(createrRepository.existsById(userId)){
-          creater=createrRepository.findById(userId).orElseThrow(()->new RuntimeException("user not found"));
+      if(createrBotDto.getCreater()!=null){
+          creater=createrRepository.findById(createrBotDto.getCreater().getId()).orElseThrow(()->new RuntimeException("user not found"));
           postLike.setUser(creater);
           res="HumanLike";
       }
       else{
           res="BotLike";
-          botUser =botRepository.findById(userId).orElseThrow(()->new RuntimeException("bot not found"));
+          botUser =botRepository.findById(createrBotDto.getBotUser().getId()).orElseThrow(()->new RuntimeException("bot not found"));
           postLike.setBot(botUser);
       }
       viralityService.updateVirality(postId,res);

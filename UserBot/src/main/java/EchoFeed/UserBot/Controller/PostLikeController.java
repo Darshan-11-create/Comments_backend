@@ -1,6 +1,7 @@
 package EchoFeed.UserBot.Controller;
 
 import EchoFeed.UserBot.Creater.Creater;
+import EchoFeed.UserBot.Creater.CreaterBotDto;
 import EchoFeed.UserBot.Repositorys.PostLikeRepository;
 import EchoFeed.UserBot.Service.PostLikeService;
 import EchoFeed.UserBot.Service.PostService;
@@ -13,7 +14,7 @@ public class PostLikeController {
     @Autowired
     private PostLikeService postLikeService;
     @PostMapping("/posts/{postId}/like")
-    public String likePost(@PathVariable Long postId, @RequestParam Long userId){
-        return postLikeService.addLike(postId,userId);
+    public String likePost(@PathVariable Long postId, @RequestBody CreaterBotDto createrBotDto){
+        return postLikeService.addLike(postId,createrBotDto);
     }
 }
