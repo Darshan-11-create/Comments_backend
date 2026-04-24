@@ -1,108 +1,202 @@
 # EchoFeed Backend
 
-## Overview
-This project is a Spring Boot backend simulating a social media system where users and bots interact through posts and comments.
-
-## Tech Stack
-- Spring Boot
-- PostgreSQL
-- Redis
-- Docker
+A Spring Boot backend simulating a social media ecosystem where human users and AI bots interact through posts and comments — with smart rate limiting, cooldown systems, and a batched notification engine.
 
 ---
 
-## API Endpoints
-###Add Human
-POST /api/addUser
-Exampe:
-  {
-    "creater":{
-     "id":1,
-     "userName":"darshan",
-     "is_premium":false
-     }
-  }
+## Tech Stack
 
-###Add Bot
-POST /api/addUser
-Exampe:
-  {
-    "botUser":{
-     "id":1,
-     "name":"Bot",
-     "persona_description":"xyz" 
-     }
-  }
-###Create Post
-#POST /api/posts
-Example:
-    {
-    "author":{
-      "id":1
-    },
-    "content":"Hello world"
-    }
-### Create Comment
-POST /api/posts/{postId}/comments
+| Layer | Technology |
+|---|---|
+| Framework | Spring Boot |
+| Primary DB | PostgreSQL |
+| Cache / State | Redis |
+| Containerization | Docker |
 
-Example (Bot):
+---
+
+## Getting Started
+
+### Prerequisites
+- Docker & Docker Compose
+- Java 17+
+- Maven
+
+### Run Locally
+
+**1. Start infrastructure services**
+```bash
+docker-compose up -d
+```
+
+**2. Run the application**
+```bash
+mvn spring-boot:run
+```
+
+---
+
+## API Reference
+
+### Users
+
+#### Add a Human User
+```
+POST /api/addUser
+```
+```json
 {
-  "botUser": { "id": 2 },
-  "content": "Hello"
+  "creater": {
+    "id": 1,
+    "userName": "darshan",
+    "is_premium": false
+  }
 }
+```
 
-Example (User):
+#### Add a Bot User
+```
+POST /api/addUser
+```
+```json
+{
+  "botUser": {
+    "id": 1,
+    "name": "Bot",
+    "persona_description": "A friendly assistant bot"
+  }
+}
+```
+
+---
+
+### Posts
+
+#### Create a Post
+```
+POST /api/posts
+```
+```json
 {
   "author": { "id": 1 },
-  "content": "Hi"
+  "content": "Hello world"
 }
+```
 
-----
+---
 
-## Features
+### Comments
+
+#### Add a Comment (Human)
+```
+POST /api/posts/{postId}/comments
+```
+```json
+{
+  "author": { "id": 1 },
+  "content": "Hi there!"
+}
+```
+
+#### Add a Comment (Bot)
+```
+POST /api/posts/{postId}/comments
+```
+```json
+{
+  "botUser": { "id": 2 },
+  "content": "Hello, how can I help?"
+}
+```
+
+---
+
+## Core Features
 
 ### 1. Bot Reply Limiting
-- Max 100 bot replies per post
-- Stored in Redis:
-  postId:{postId}:Bot_count
+Caps the number of bot replies per post at **100** to prevent spam and runaway bot activity.
+
+**Redis key:**
+```
+postId:{postId}:Bot_count
+```
+
+---
 
 ### 2. Cooldown System
-- Prevents repeated bot-user interaction
-- Redis key:
-  cooldown:{minId}:{maxId}
+Prevents repeated bot–user interactions within a short window, ensuring conversations feel natural and non-spammy.
+
+**Redis key:**
+```
+cooldown:{minId}:{maxId}
+```
+Where `minId` and `maxId` are the lower and higher of the two participant IDs, making the key order-independent.
+
+---
 
 ### 3. Comment Depth Limit
-- Maximum depth = 20
+Threaded replies are capped at a **maximum depth of 20** to prevent infinitely nested comment chains.
+
+---
 
 ### 4. Notification Engine (Smart Batching)
 
-#### Redis Throttler
-- If user NOT in cooldown:
-  - Send notification immediately
-  - Set 15 min cooldown
+Notifications are intelligently throttled to avoid overwhelming users with per-interaction pings.
 
-- If user in cooldown:
-  - Store in:
-    user:{id}:pending_notifs
+#### Immediate Notification (No Active Cooldown)
+1. Send notification to user right away
+2. Set a **15-minute cooldown** for that user
 
-#### Cron Job
-- Runs every 5 minutes
-- Sends summarized notifications:
-  "Bot X and N others interacted with your post"
+#### Batched Notification (Cooldown Active)
+1. Queue the notification in Redis:
+   ```
+   user:{id}:pending_notifs
+   ```
+2. A **cron job runs every 5 minutes** and dispatches a summarized digest:
+   > *"Bot X and 4 others interacted with your post"*
 
----
-
-## How to Run
-
-### 1. Start services
-docker-compose up -d
-
-### 2. Run application
-mvn spring-boot:run
+#### Flow Diagram
+```
+New interaction
+      │
+      ▼
+User in cooldown?
+   │         │
+  YES        NO
+   │         │
+   ▼         ▼
+Queue to   Send immediately
+pending  + Set 15-min cooldown
+notifs
+   │
+   ▼
+Cron (every 5 min)
+→ Flush & send digest
+```
 
 ---
 
 ## Design Principles
-- Stateless backend
-- Redis as gatekeeper
-- PostgreSQL as source of truth
+
+- **Stateless backend** — no session state stored in the application layer
+- **Redis as gatekeeper** — all rate limiting, cooldowns, and notification queues live in Redis for fast, atomic operations
+- **PostgreSQL as source of truth** — all persistent data (users, posts, comments) is durably stored in Postgres
+
+---
+
+## Project Structure
+
+```
+echofeed-backend/
+├── src/
+│   └── main/
+│       ├── java/com/echofeed/
+│       │   ├── controller/       # REST endpoints
+│       │   ├── creater/          # Entity classes
+│       │   ├── repository/       # JPA repositories
+│       │   ├── services/         # service classes
+│       └── resources/
+│           └── application.yml
+├── docker-compose.yml
+└── pom.xml
+```
