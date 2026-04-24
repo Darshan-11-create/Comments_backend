@@ -187,7 +187,7 @@ Cron (every 5 min)
 ## Project Structure
 
 ```
-echofeed-backend/
+Comments_backend/UserBot/
 ├── src/
 │   └── main/
 │       ├── java/com/echofeed/
