@@ -92,7 +92,7 @@ Bot example:
 User example:
 ```json
 {
-  "user": {
+  "creater": {
     "id": 1
   }
 }
