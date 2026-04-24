@@ -12,7 +12,36 @@ This project is a Spring Boot backend simulating a social media system where use
 ---
 
 ## API Endpoints
+###Add Human
+POST /api/addUser
+Exampe:
+  {
+    "creater":{
+     "id":1,
+     "userName":"darshan",
+     "is_premium":false
+     }
+  }
 
+###Add Bot
+POST /api/addUser
+Exampe:
+  {
+    "botUser":{
+     "id":1,
+     "name":"Bot",
+     "persona_description":"xyz" 
+     }
+  }
+###Create Post
+#POST /api/posts
+Example:
+    {
+    "author":{
+      "id":1
+    },
+    "content":"Hello world"
+    }
 ### Create Comment
 POST /api/posts/{postId}/comments
 
